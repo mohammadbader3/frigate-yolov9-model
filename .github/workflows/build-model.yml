@@ -31,7 +31,17 @@ jobs:
           ARG IMG_SIZE
           COPY --from=build /yolov9/yolov9-${MODEL_SIZE}.onnx /yolov9-${MODEL_SIZE}-${IMG_SIZE}.onnx
           EOF
-
+      - name: Verify ONNX model
+        run: |
+          python -m pip install onnx
+          python - <<'PY'
+          import onnx
+          model = onnx.load("output/yolov9-s-320.onnx")
+          for label, tensors in [("INPUTS", model.graph.input), ("OUTPUTS", model.graph.output)]:
+              for tensor in tensors:
+                  shape = [d.dim_value if d.HasField("dim_value") else d.dim_param for d in tensor.type.tensor_type.shape.dim]
+                  print(label, tensor.name, shape)
+          PY
       - name: Upload converted model
         uses: actions/upload-artifact@v4
         with:
